@@ -3,37 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyChat - Multi Room</title>
+    <title>MyChat - Pro Version</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
         
-        /* Header */
         header { background: #0084ff; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .room-info h4 { margin: 0; font-size: 16px; }
+        .room-info h4 { margin: 0; font-size: 15px; }
         .room-info span { font-size: 11px; opacity: 0.8; }
-        .btn-room { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
 
-        /* Chat Area */
-        #chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 8px 12px; border-radius: 18px; word-wrap: break-word; font-size: 15px; position: relative; }
-        .received { align-self: flex-start; background: white; color: black; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .sent { align-self: flex-end; background: #0084ff !important; color: white !important; border-bottom-right-radius: 4px; }
-        .sender-name { font-size: 11px; margin-bottom: 3px; color: #65676b; font-weight: bold; }
-        .sent .sender-name { display: none; }
-        .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
+        /* Khung Chat */
+        #chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        
+        /* Tin nhắn và Avatar */
+        .msg-row { display: flex; align-items: flex-end; gap: 8px; max-width: 85%; }
+        .received-row { align-self: flex-start; }
+        .sent-row { align-self: flex-end; flex-direction: row-reverse; }
+
+        .avatar { width: 35px; height: 35px; border-radius: 50%; background: #0084ff; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .avatar:hover::after { content: 'Nhắn tin riêng'; position: absolute; background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; margin-top: -45px; white-space: nowrap; }
+
+        .msg-content { display: flex; flex-direction: column; }
+        .msg { padding: 10px 14px; border-radius: 18px; font-size: 15px; word-wrap: break-word; }
+        .received { background: white; color: black; border-bottom-left-radius: 4px; }
+        .sent { background: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        
+        .sender-name { font-size: 11px; margin-bottom: 4px; color: #65676b; font-weight: 600; margin-left: 5px; }
+        .sent-row .sender-name { text-align: right; margin-right: 5px; }
+
+        .chat-img { max-width: 100%; border-radius: 12px; margin-top: 5px; display: block; border: 1px solid #ddd; }
 
         /* Input Area */
         #input-area { background: white; padding: 10px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #ddd; }
-        #message-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; outline: none; background: #f0f2f5; }
-        .icon-btn { cursor: pointer; font-size: 20px; color: #0084ff; }
+        #message-input { flex: 1; padding: 12px 18px; border: 1px solid #ddd; border-radius: 25px; outline: none; background: #f0f2f5; }
+        .icon-btn { cursor: pointer; font-size: 22px; color: #0084ff; transition: transform 0.2s; }
+        .icon-btn:hover { transform: scale(1.1); }
 
-        /* Overlays (Login & Room) */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .modal { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 320px; text-align: center; }
+        /* Modals */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 320px; text-align: center; }
         .modal input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
         .modal button { width: 100%; padding: 12px; background: #0084ff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
@@ -42,19 +53,9 @@
 
     <div id="login-overlay" class="overlay">
         <div class="modal">
-            <h3>Chào mừng bạn</h3>
+            <h3>Chào mừng đến với MyChat</h3>
             <input type="text" id="username-input" placeholder="Nhập tên của bạn...">
-            <button onclick="saveUser()">Bắt đầu</button>
-        </div>
-    </div>
-
-    <div id="room-overlay" class="overlay" style="display: none;">
-        <div class="modal">
-            <h3>Vào phòng chat</h3>
-            <p style="font-size: 12px; color: #666;">Để trống nếu muốn vào phòng "Chung"</p>
-            <input type="text" id="room-input" placeholder="Tên phòng (ví dụ: nhom-lop)">
-            <button onclick="changeRoom()">Vào phòng</button>
-            <button onclick="closeRoomModal()" style="background:#ccc; margin-top: 5px;">Hủy</button>
+            <button onclick="saveUser()">Bắt đầu ngay</button>
         </div>
     </div>
 
@@ -63,21 +64,30 @@
             <h4 id="display-room-name">Phòng: Chung</h4>
             <span id="display-username">Đang tải...</span>
         </div>
-        <button class="btn-room" onclick="openRoomModal()">Đổi phòng</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-room" style="background: rgba(255,255,255,0.2); border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;" onclick="location.href='?'">🏠 Chung</button>
+            <button class="btn-room" style="background: rgba(255,255,255,0.2); border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;" onclick="openRoomModal()">➕ Phòng</button>
+        </div>
     </header>
     
     <div id="chat-container"></div>
 
     <div id="input-area">
-        <label class="icon-btn">
-            📷<input type="file" accept="image/*" style="display:none" onchange="uploadImg(this)">
-        </label>
+        <label class="icon-btn">🖼️<input type="file" accept="image/*" style="display:none" onchange="uploadImg(this)"></label>
         <input type="text" id="message-input" placeholder="Nhập tin nhắn..." onkeypress="if(event.key==='Enter') sendText()">
         <div class="icon-btn" onclick="sendText()">🚀</div>
     </div>
 
+    <div id="room-overlay" class="overlay" style="display: none;">
+        <div class="modal">
+            <h3>Vào phòng mới</h3>
+            <input type="text" id="room-input" placeholder="Tên phòng...">
+            <button onclick="changeRoom()">Tham gia</button>
+            <button onclick="document.getElementById('room-overlay').style.display='none'" style="background:#ccc; margin-top:5px;">Hủy</button>
+        </div>
+    </div>
+
     <script>
-        // Cấu hình Firebase của bạn
         const firebaseConfig = {
             apiKey: "AIzaSyDJq_ZXjQ-2Xc8yJQrtPBi6ZRvD0TLO81c",
             authDomain: "mychat-8fe77.firebaseapp.com",
@@ -94,16 +104,15 @@
         let currentUser = localStorage.getItem("chat_username") || "";
         let currentRoom = new URLSearchParams(window.location.search).get('r') || "Chung";
 
-        // Khởi tạo ứng dụng
         window.onload = () => {
             if (!currentUser) {
                 document.getElementById('login-overlay').style.display = 'flex';
             } else {
                 document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('display-username').innerText = "Bạn: " + currentUser;
+                document.getElementById('display-room-name').innerText = "📍 " + currentRoom;
                 startListening();
             }
-            document.getElementById('display-username').innerText = "Chào, " + (currentUser || "Khách");
-            document.getElementById('display-room-name').innerText = "Phòng: " + currentRoom;
         };
 
         function saveUser() {
@@ -115,36 +124,54 @@
         }
 
         function openRoomModal() { document.getElementById('room-overlay').style.display = 'flex'; }
-        function closeRoomModal() { document.getElementById('room-overlay').style.display = 'none'; }
         
         function changeRoom() {
-            const room = document.getElementById('room-input').value.trim() || "Chung";
-            window.location.href = `?r=${encodeURIComponent(room)}`;
+            const room = document.getElementById('room-input').value.trim();
+            if(room) window.location.href = `?r=${encodeURIComponent(room)}`;
+        }
+
+        // CHỨC NĂNG NHẮN TIN RIÊNG
+        function startPrivateChat(otherUser) {
+            if (otherUser === currentUser) return;
+            // Tạo tên phòng duy nhất từ 2 cái tên (sắp xếp alpha để 2 người dùng chung 1 phòng)
+            const roomID = [currentUser, otherUser].sort().join("_VS_");
+            window.location.href = `?r=🔒_${encodeURIComponent(roomID)}`;
         }
 
         function startListening() {
             const chatRef = db.ref("rooms/" + currentRoom);
             chatRef.limitToLast(50).on("child_added", (snap) => {
                 const data = snap.val();
-                const container = document.getElementById('chat-container');
                 const isMe = data.sender === currentUser;
+                const container = document.getElementById('chat-container');
                 
-                const div = document.createElement('div');
-                div.className = `msg ${isMe ? 'sent' : 'received'}`;
+                const row = document.createElement('div');
+                row.className = `msg-row ${isMe ? 'sent-row' : 'received-row'}`;
+                
+                // Tạo Avatar
+                const initial = data.sender.charAt(0).toUpperCase();
+                const avatar = `<div class="avatar" onclick="startPrivateChat('${data.sender}')" style="background:${stringToColor(data.sender)}">${initial}</div>`;
                 
                 let body = data.type === 'img' 
                     ? `<img src="${data.content}" class="chat-img" onclick="window.open(this.src)">` 
-                    : `<div class="text">${data.content}</div>`;
+                    : `<div class="msg ${isMe ? 'sent' : 'received'}">${data.content}</div>`;
 
-                div.innerHTML = `${!isMe ? `<div class="sender-name">${data.sender}</div>` : ''} ${body}`;
-                container.appendChild(div);
+                row.innerHTML = `
+                    ${avatar}
+                    <div class="msg-content">
+                        <div class="sender-name">${data.sender}</div>
+                        ${body}
+                    </div>
+                `;
+                
+                container.appendChild(row);
                 container.scrollTop = container.scrollHeight;
             });
         }
 
         function sendText() {
             const input = document.getElementById('message-input');
-            if (input.value.trim() && currentUser) {
+            if (input.value.trim()) {
                 db.ref("rooms/" + currentRoom).push({
                     sender: currentUser,
                     content: input.value.trim().replace(/</g, "&lt;"),
@@ -157,7 +184,7 @@
 
         function uploadImg(el) {
             const file = el.files[0];
-            if (file && file.size < 2000000) { // Giới hạn 2MB cho ảnh base64
+            if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     db.ref("rooms/" + currentRoom).push({
@@ -168,9 +195,16 @@
                     });
                 };
                 reader.readAsDataURL(file);
-            } else {
-                alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
             }
+        }
+
+        // Hàm tạo màu ngẫu nhiên cho Avatar dựa trên tên
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return `hsl(${Math.abs(hash) % 360}, 65%, 45%)`;
         }
     </script>
 </body>
