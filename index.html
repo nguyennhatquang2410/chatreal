@@ -82,7 +82,7 @@
         <div class="icon-btn" onclick="sendText()">🚀</div>
     </div>
 
-    <audio id="noti-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+    <audio id="noti-sound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
 
     <div id="room-overlay" class="overlay" style="display: none;">
         <div class="modal">
@@ -174,8 +174,9 @@
                 // THÔNG BÁO: Chỉ chạy khi không phải mình nhắn và đã load xong dữ liệu cũ
                 if (!isMe && !initialLoad) {
                     // Phát âm thanh
-                    document.getElementById('noti-sound').play().catch(() => {});
-
+                    const sound = document.getElementById('noti-sound');
+                    sound.volume = 1.0; // 1.0 là mức to nhất (từ 0.0 đến 1.0)
+                    sound.play().catch(() => {});
                     // Thông báo đẩy (nếu đang ở tab khác)
                     if (Notification.permission === "granted" && document.hidden) {
                         new Notification(`Tin nhắn từ ${data.sender}`, {
