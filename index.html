@@ -3,35 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyChat - LocalStorage Edition</title>
+    <title>MyChat - Fixed Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
     <style>
-        /* Giữ nguyên CSS cũ */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
-        header { background: #0084ff; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        header { background: #0084ff; color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; }
+        
         #chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
-        .received { align-self: flex-start; background: white; color: black; border-bottom-left-radius: 4px; }
-        .sent { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; font-size: 15px; line-height: 1.4; }
+        /* Màu cho tin nhắn người khác */
+        .received { align-self: flex-start; background: white; color: black; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        /* Màu xanh cho tin nhắn của chính mình */
+        .sent { align-self: flex-end; background: #0084ff !important; color: white !important; border-bottom-right-radius: 4px; }
+        
         .sender-name { font-size: 11px; margin-bottom: 3px; color: #65676b; font-weight: bold; }
-        #input-area { background: white; padding: 10px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
-        button { background: #0084ff; color: white; border: none; padding: 0 20px; border-radius: 25px; cursor: pointer; }
+        .sent .sender-name { display: none; }
+
+        #input-area { background: white; padding: 12px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 12px 18px; border: 1px solid #ddd; border-radius: 25px; outline: none; background: #f0f2f5; }
+        button { background: #0084ff; color: white; border: none; padding: 0 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        
         #login-screen { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        #login-screen input { flex: none; width: 80%; max-width: 300px; margin-bottom: 15px; background: white; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h3>Chào mừng trở lại</h3>
-        <input type="text" id="username" placeholder="Nhập tên bạn...">
-        <button onclick="startChat()">Vào Chat</button>
+        <h2 style="margin-bottom: 20px;">Chào mừng bạn</h2>
+        <input type="text" id="username" placeholder="Nhập tên của bạn...">
+        <button onclick="startChat()" style="height: 45px; width: 150px;">Bắt đầu Chat</button>
     </div>
 
-    <header>MYCHAT REALTIME</header>
+    <header>PHÒNG CHAT REALTIME</header>
     <div id="chat-container"></div>
 
     <div id="input-area">
@@ -54,26 +62,23 @@
         const db = firebase.database();
         const chatRef = db.ref("messages");
         
+        // 1. LẤY DỮ LIỆU TỪ LOCALSTORAGE NGAY KHI LOAD TRANG
         let currentUser = localStorage.getItem("chat_username") || "";
-        let localMessages = JSON.parse(localStorage.getItem("chat_history")) || [];
 
-        // Kiểm tra nếu đã có tên trong máy thì bỏ qua màn hình đăng nhập
+        // Nếu đã có tên, ẩn màn hình đăng nhập ngay lập tức
         if (currentUser) {
             document.getElementById('login-screen').style.display = 'none';
-            loadLocalHistory();
         }
 
         function startChat() {
             const name = document.getElementById('username').value.trim();
             if (name) {
                 currentUser = name;
-                localStorage.setItem("chat_username", name); // Lưu tên vào máy
+                localStorage.setItem("chat_username", name); // Lưu tên
                 document.getElementById('login-screen').style.display = 'none';
+                // Reload lại một lần để đồng bộ màu sắc tin nhắn cũ nếu cần
+                location.reload(); 
             }
-        }
-
-        function loadLocalHistory() {
-            localMessages.forEach(msg => displayMessage(msg, false));
         }
 
         function sendMessage() {
@@ -90,29 +95,21 @@
             }
         }
 
-        // Lắng nghe Firebase
-        chatRef.limitToLast(20).on("child_added", (snapshot) => {
+        // 2. LẮNG NGHE TIN NHẮN TỪ FIREBASE
+        chatRef.limitToLast(50).on("child_added", (snapshot) => {
             const data = snapshot.val();
-            const msgId = snapshot.key;
-
-            // Kiểm tra tin nhắn này đã có trong local chưa để tránh trùng lặp
-            if (!document.getElementById(msgId)) {
-                displayMessage(data, true, msgId);
-                
-                // Lưu vào LocalStorage history
-                localMessages.push({...data, id: msgId});
-                if(localMessages.length > 100) localMessages.shift(); // Giữ tối đa 100 tin
-                localStorage.setItem("chat_history", JSON.stringify(localMessages));
-            }
+            displayMessage(data);
         });
 
-        function displayMessage(data, isNew, id) {
+        function displayMessage(data) {
             const container = document.getElementById('chat-container');
-            const isMe = data.sender === currentUser;
+            
+            // SO SÁNH TÊN: Nếu sender khớp với currentUser thì thêm class 'sent'
+            const isMe = (data.sender === currentUser);
             
             const msgDiv = document.createElement('div');
-            if(id) msgDiv.id = id;
             msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
+            
             msgDiv.innerHTML = `
                 ${!isMe ? `<div class="sender-name">${data.sender}</div>` : ''}
                 <div class="text">${data.text}</div>
